@@ -27,7 +27,7 @@ FeelMap is a free, web-based tool that helps users understand the emotions hidde
 
 ## 🌐 Try It Now
 
-> [FeelMap Live App]([https://feelmap.streamlit.app](https://feelmap-nseyfgoyvrstb4nkfkfn32.streamlit.app/))  
+> [FeelMap Live App](https://feelmap-nseyfgoyvrstb4nkfkfn32.streamlit.app/)
 *(If the app isn’t live, you can clone and run it locally — see below)*
 
 
