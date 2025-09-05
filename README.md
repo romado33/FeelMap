@@ -13,6 +13,8 @@ FeelMap is a free, web-based tool that helps users understand the emotions hidde
   - **Simple** (7 core emotions)
   - **Advanced** (28 nuanced emotions)
   - **GPT AI** (OpenAI-powered, human-like insight)
+- 📂 Upload text files for analysis or type directly
+- ⬇️ Download detailed emotion scores as CSV
 
 ---
 
