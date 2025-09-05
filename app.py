@@ -67,7 +67,16 @@ model_choice = st.sidebar.radio(
 )
 
 # --- Main input ---
-text = st.text_area("Enter your text to analyze emotion:", height=200)
+
+# Use session state to allow file uploads to populate the text area
+if "text_input" not in st.session_state:
+    st.session_state["text_input"] = ""
+
+uploaded_file = st.file_uploader("Optional: upload a .txt file", type=["txt"])
+if uploaded_file is not None:
+    st.session_state["text_input"] = uploaded_file.read().decode("utf-8")
+
+text = st.text_area("Enter your text to analyze emotion:", height=200, key="text_input")
 
 if text.strip():
     st.subheader("🔍 Analyzing...")
@@ -84,6 +93,7 @@ if text.strip():
         tokenizer, model, labels = load_model(model_name)
         results = get_emotions(text, tokenizer, model, labels)
         df = pd.DataFrame(results)
+        df["percentage"] = df["score"] * 100
 
         st.markdown("### 🏆 Top Emotions")
         for i in range(min(3, len(results))):
@@ -92,7 +102,6 @@ if text.strip():
             st.markdown(f"- **{label}** ({score:.1f}%)")
 
         chart_df = df[df["score"] > 0.05].sort_values(by="score", ascending=False).head(10)
-        chart_df["percentage"] = chart_df["score"] * 100
 
         st.subheader("📊 Emotion Probability Chart")
 
@@ -118,6 +127,16 @@ if text.strip():
         )
         st.plotly_chart(fig, use_container_width=True)
 
+        st.markdown("### 📄 Detailed Scores")
+        st.dataframe(df.sort_values(by="percentage", ascending=False))
+
+        csv_data = df.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            "Download results as CSV",
+            csv_data,
+            "feelmap_results.csv",
+            "text/csv"
+        )
 
         with st.expander("⚠️ Was this emotion incorrect? Help improve FeelMap"):
             correct_emotion = st.text_input("What emotion would you have expected instead?")
