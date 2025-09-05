@@ -1,24 +1,31 @@
-import streamlit as st
-import pandas as pd
-import torch
-from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
-from pathlib import Path
-import plotly.express as px
-import openai
+import csv
 import os
+from pathlib import Path
+
+import openai
+import pandas as pd
+import plotly.express as px
+import streamlit as st
+import torch
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
 
 # --- CONFIGURE OPENAI ---
 openai.api_key = os.getenv("OPENAI_API_KEY")  # Ensure this is set in your environment or .streamlit/secrets.toml
+if not openai.api_key:
+    st.warning("OpenAI API key not found. GPT-based analysis will be unavailable.")
 
 # --- MODEL OPTIONS ---
 MODEL_SIMPLE = "bhadresh-savani/distilbert-base-uncased-emotion"
 MODEL_ADVANCED = "joeddav/distilbert-base-uncased-go-emotions-student"
 
 # --- Load model/tokenizer by mode ---
+@st.cache_resource(show_spinner=False)
 def load_model(model_name):
+    """Load and cache the tokenizer and model."""
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForSequenceClassification.from_pretrained(model_name)
+    model.eval()
     labels = model.config.id2label
     return tokenizer, model, labels
 
@@ -54,7 +61,10 @@ st.title("🧠 FeelMap – Emotion Insight")
 st.markdown("Analyze text to detect overlapping emotions using either a fast model or an AI-powered GPT model.")
 
 # --- Sidebar model selector ---
-model_choice = st.sidebar.radio("Choose detection model:", ["Simple (7 emotions)", "Advanced (28 emotions)", "OpenAI GPT (custom)"])
+model_choice = st.sidebar.radio(
+    "Choose detection model:",
+    ["Simple (7 emotions)", "Advanced (28 emotions)", "OpenAI GPT (custom)"]
+)
 
 # --- Main input ---
 text = st.text_area("Enter your text to analyze emotion:", height=200)
@@ -76,9 +86,9 @@ if text.strip():
         df = pd.DataFrame(results)
 
         st.markdown("### 🏆 Top Emotions")
-        for i in range(3):
-            label = results[i]['label'].capitalize()
-            score = results[i]['score'] * 100
+        for i in range(min(3, len(results))):
+            label = results[i]["label"].capitalize()
+            score = results[i]["score"] * 100
             st.markdown(f"- **{label}** ({score:.1f}%)")
 
         chart_df = df[df["score"] > 0.05].sort_values(by="score", ascending=False).head(10)
@@ -114,7 +124,11 @@ if text.strip():
             explanation = st.text_area("Can you explain why? (optional)")
             if st.button("Submit Feedback"):
                 log_path = Path("feedback_log.csv")
-                with log_path.open("a", encoding="utf-8") as f:
-                    f.write(f'"{text.strip()}","{correct_emotion.strip()}","{explanation.strip()}"\n')
+                with log_path.open("a", encoding="utf-8", newline="") as f:
+                    writer = csv.writer(f)
+                    writer.writerow([text.strip(), correct_emotion.strip(), explanation.strip()])
                 st.success("✅ Thank you! Your feedback has been saved.")
-st.caption("Built with ❤️ using [Hugging Face](https://huggingface.co/) and [OpenAI](https://openai.com/) and [Streamlit](https://streamlit.io/)")
+st.caption(
+    "Built with ❤️ using [Hugging Face](https://huggingface.co/), "
+    "[OpenAI](https://openai.com/), and [Streamlit](https://streamlit.io/)"
+)
